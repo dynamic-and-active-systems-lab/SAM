@@ -87,7 +87,7 @@ wk = round(linspace(1, File_Deployment_Length+1, 5)); %for week chunks
 for i = 1:4 %calculations done a week at a time 
     % Solar Position calculator based on "Principles of Sustatinable Energy" by Kreith
     Minute = repmat(((1:86400)'./60), 1, length(wk(i):wk(i+1)-1));
-    [Zenith(:,wk(i):wk(i+1)-1),Incidence_Angle(:,wk(i):wk(i+1)-1)] = Solar_Position(Latitude(:,wk(i):wk(i+1)-1), Longitude(:,wk(i):wk(i+1)-1), Day_of_Year(wk(i):wk(i+1)-1), Minute, Panel_Tilt_Bound(:,wk(i):wk(i+1)-1), Panel_Azimuth(:,wk(i):wk(i+1)-1)); %both angles [deg]
+    [Zenith(:,wk(i):wk(i+1)-1), Solar_Azimuth(:,wk(i):wk(i+1)-1), Incidence_Angle(:,wk(i):wk(i+1)-1)] = Solar_Position(Latitude(:,wk(i):wk(i+1)-1), Longitude(:,wk(i):wk(i+1)-1), dateTime(wk(i):wk(i+1)-1), Panel_Tilt_Bound(:,wk(i):wk(i+1)-1), Panel_Azimuth(:,wk(i):wk(i+1)-1)); %both angles [deg]
 %     [Zenith(:,wk(i):wk(i+1)-1), Solar_Azimuth(:,wk(i):wk(i+1)-1), Incidence_Angle(:,wk(i):wk(i+1)-1)] = Solar_Angles_PST(Panel_Tilt_Bound(:,wk(i):wk(i+1)-1), Panel_Azimuth(:,wk(i):wk(i+1)-1), Latitude(:,wk(i):wk(i+1)-1), Longitude(:,wk(i):wk(i+1)-1), Time(:,wk(i):wk(i+1)-1));
     
     %Irradiance Read In
