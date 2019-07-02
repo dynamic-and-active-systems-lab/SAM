@@ -1,18 +1,18 @@
- function [out, wb_progress] = MAIN(wb, wb_progress, wb_str, wb_unit, filename, Water_Quality, Time_Zone, outputNames, in_file_path, irr_file_path, array_type, array_n, Solar_Cell_Area, Rsh, Rs, C, Eg_0, alpha, beta)
+ function [out, wb_progress] = MAIN(wb, wb_progress, wb_str, wb_unit, filename, Water_Quality, Time_Zone, outputNames, in_file_path, irr_file_path, array_type, array_n, Solar_Cell_Area, Rsh, Rs, C, Eg_0, alpha, beta,Cust_Ext_Eff)
 %% Load in data
 waitbar(wb_progress,wb,[wb_str,'Loading Data...']);
 
-load(sprintf('%s/%s', in_file_path, filename)); % Reads Start and End Day
+load(sprintf('%s/%s', in_file_path, filename)) % Reads Start and End Day
 
 %% Time of year
 waitbar(wb_progress,wb,[wb_str,'Initializing Calculations...']);
 
-Month_Start_Day = [1 32 60 91 121 152 182 213 244 274 305 335;...
-    1 32 61 92 122 153 183 214 245 275 306 336]; %start day of each month, row 1: Common Year row 2: Leap Year
+Month_Start_Day = single([1 32 60 91 121 152 182 213 244 274 305 335;...
+    1 32 61 92 122 153 183 214 245 275 306 336]); %start day of each month, row 1: Common Year row 2: Leap Year
  
 dateTime = datetime(Time,'ConvertFrom','excel');
-Year = unique(dateTime.Year,'stable');
-Month = unique(dateTime.Month,'stable');
+Year = single(unique(dateTime.Year,'stable'));
+Month = single(unique(dateTime.Month,'stable'));
 
 row = (mod(Year,4) == 0)*2 + (mod(Year,4) ~= 0)*1;  %logically determine row of 'Month_Start_Day' vector
 Day_of_Year =  unique(dateTime.Day,'stable') + Month_Start_Day(row, Month) - 1;
@@ -42,8 +42,8 @@ Longitude = reshape(Longitude,86400,File_Deployment_Length); % Negative for West
 %indices used by CERES Irradiance data
 isneg = @(val) val < 0; %set up quick functions for clean conversions
 ispos = @(val) val >= 0;
-Latitude_CERES_Indices = round(Latitude) + 91 - (round(Latitude)== 90);
-Longitude_CERES_Indices = round(Longitude) + ispos(round(Longitude)) + isneg(round(Longitude)).*361;
+Latitude_CERES_Indices = single(round(Latitude) + 91 - (round(Latitude)== 90));
+Longitude_CERES_Indices = single(round(Longitude) + ispos(round(Longitude)) + isneg(round(Longitude)).*361);
 
 %find lat/lon indices relative to travelled in the month; matrix indices
 Lat_month_max = max(max(Latitude_CERES_Indices)); %find lon and lat min and max of month
@@ -57,27 +57,49 @@ Lat_month = Lat_month_min:Lat_month_max;
 
 %% Matrix Preallocation
 
-Zenith = zeros(86400,File_Deployment_Length); % Preallocated matrix
-Incidence_Angle = zeros(86400,File_Deployment_Length); % Preallocated matrix
-Total_All_Sky_Direct_Down = zeros(length(Lon_month), length(Lat_month), 86400, File_Deployment_Length); %Preallocated matrix
-Total_All_Sky_GHI = zeros(length(Lon_month), length(Lat_month), 86400, File_Deployment_Length); %Preallocated matrix
-Clear_Sky_Direct_Spectrum = zeros(122,86400,File_Deployment_Length); % Preallocated matrix
-Total_Clear_Sky_Direct = zeros(86400,File_Deployment_Length); % Preallocated matrix
-Clear_Sky_GHI_Spectrum = zeros(122,86400,File_Deployment_Length); % Preallocated matrix
-Total_Clear_Sky_GHI = zeros(86400,File_Deployment_Length); % Preallocated matrix
-CERES_Direct_Down = zeros(86400,File_Deployment_Length); % Preallocated matrix
-CERES_GHI = zeros(86400,File_Deployment_Length); % Preallocated matrix
-Scaled_Direct_Down_Irradiance_Spectrum = zeros(122,86400,File_Deployment_Length); % Preallocated matrix
-Scaled_Direct_Irradiance_Spectrum = zeros(122,86400,File_Deployment_Length); % Preallocated matrix
-Scaled_Diffuse_Irradiance_Spectrum = zeros(122,86400,File_Deployment_Length); % Preallocated matrix
-Scaled_GHI_Spectrum = zeros(122,86400,File_Deployment_Length); % Preallocated matrix
-Total_Scaled_GHI = zeros(86400,File_Deployment_Length); % Preallocated matrix
-Scaled_Transmitted_GHI_Spectrum = zeros(122,86400,File_Deployment_Length); % Preallocated matrix
-Total_Scaled_Transmitted_GHI = zeros(86400,File_Deployment_Length); % Preallocated matrix
-Total_Solar_Irradiance_Incident_To_Cell = zeros(86400,File_Deployment_Length); % Preallocated matrix
-Solar_Cell_Power_Output = zeros(86400,File_Deployment_Length); % Preallocated matrix
-V_oc = zeros(86400,File_Deployment_Length); % Preallocated matrix
-I_sc = zeros(86400,File_Deployment_Length); % Preallocated matrix
+% Zenith = single(zeros(86400,File_Deployment_Length)); % Preallocated matrix
+% Incidence_Angle = single(zeros(86400,File_Deployment_Length)); % Preallocated matrix
+% Total_All_Sky_Direct_Down = single(zeros(length(Lon_month), length(Lat_month), 86400, File_Deployment_Length)); %Preallocated matrix
+% Total_All_Sky_GHI = single(zeros(length(Lon_month), length(Lat_month), 86400, File_Deployment_Length)); %Preallocated matrix
+% Clear_Sky_Direct_Spectrum = single(zeros(122,86400,File_Deployment_Length)); % Preallocated matrix
+% Total_Clear_Sky_Direct = single(zeros(86400,File_Deployment_Length)); % Preallocated matrix
+% Clear_Sky_GHI_Spectrum = single(zeros(122,86400,File_Deployment_Length)); % Preallocated matrix
+% Total_Clear_Sky_GHI = single(zeros(86400,File_Deployment_Length)); % Preallocated matrix
+% CERES_Direct_Down = single(zeros(86400,File_Deployment_Length)); % Preallocated matrix
+% CERES_GHI = single(zeros(86400,File_Deployment_Length)); % Preallocated matrix
+% Scaled_Direct_Down_Irradiance_Spectrum = single(zeros(122,86400,File_Deployment_Length)); % Preallocated matrix
+% Scaled_Direct_Irradiance_Spectrum = single(zeros(122,86400,File_Deployment_Length)); % Preallocated matrix
+% Scaled_Diffuse_Irradiance_Spectrum = single(zeros(122,86400,File_Deployment_Length)); % Preallocated matrix
+% Scaled_GHI_Spectrum = single(zeros(122,86400,File_Deployment_Length)); % Preallocated matrix
+% Total_Scaled_GHI = single(zeros(86400,File_Deployment_Length)); % Preallocated matrix
+% Scaled_Transmitted_GHI_Spectrum = single(zeros(122,86400,File_Deployment_Length)); % Preallocated matrix
+% Total_Scaled_Transmitted_GHI = single(zeros(86400,File_Deployment_Length)); % Preallocated matrix
+% Total_Solar_Irradiance_Incident_To_Cell = single(zeros(86400,File_Deployment_Length)); % Preallocated matrix
+% Solar_Cell_Power_Output = single(zeros(86400,File_Deployment_Length)); % Preallocated matrix
+% V_oc = single(zeros(86400,File_Deployment_Length)); % Preallocated matrix
+% I_sc = single(zeros(86400,File_Deployment_Length)); % Preallocated matrix
+
+Zenith = single([]); % Preallocated matrix
+Incidence_Angle = []; % Preallocated matrix
+Total_All_Sky_Direct_Down = single([]); %Preallocated matrix
+Total_All_Sky_GHI = single([]); %Preallocated matrix
+Clear_Sky_Direct_Spectrum = single([]); % Preallocated matrix
+Total_Clear_Sky_Direct = single([]); % Preallocated matrix
+Clear_Sky_GHI_Spectrum = single([]); % Preallocated matrix
+Total_Clear_Sky_GHI = single([]); % Preallocated matrix
+CERES_Direct_Down = single([]); % Preallocated matrix
+CERES_GHI = single([]); % Preallocated matrix
+Scaled_Direct_Down_Irradiance_Spectrum = single([]); % Preallocated matrix
+Scaled_Direct_Irradiance_Spectrum = single([]); % Preallocated matrix
+Scaled_Diffuse_Irradiance_Spectrum = single([]); % Preallocated matrix
+Scaled_GHI_Spectrum = single([]); % Preallocated matrix
+Total_Scaled_GHI = single([]); % Preallocated matrix
+Scaled_Transmitted_GHI_Spectrum = single([]); % Preallocated matrix
+Total_Scaled_Transmitted_GHI = single([]); % Preallocated matrix
+Total_Solar_Irradiance_Incident_To_Cell = []; % Preallocated matrix
+Solar_Cell_Power_Output = []; % Preallocated matrix
+V_oc = []; % Preallocated matrix
+I_sc = []; % Preallocated matrix
 
 %% Power output calculations
 
@@ -96,7 +118,6 @@ for i = 1:4 %calculations done a week at a time
     Week_Length = wk(i+1)-wk(i); %(wk(i+1)-1) - wk(i) + 1 
     Day_of_Month = wk(i);
     [Total_All_Sky_Direct_Down(a,b,:,wk(i):wk(i+1)-1), Total_All_Sky_GHI(a,b,:,wk(i):wk(i+1)-1)] = Irradiance_ReadIn(Year, Month, Start, End, Week_Length, Time_Zone, Day_of_Month, Latitude_CERES_Indices(:,wk(i):wk(i+1)-1), Longitude_CERES_Indices(:,wk(i):wk(i+1)-1), irr_file_path); %Read in CERES data and interpolate only latitude and longitude values seen to a second resolution
-    
 end
 
 for day = 1:File_Deployment_Length % daily calculations
@@ -130,7 +151,7 @@ for day = 1:File_Deployment_Length % daily calculations
     [Total_Scaled_GHI(:,day), Scaled_Transmitted_GHI_Spectrum(:,:,day), Total_Scaled_Transmitted_GHI(:,day)] = Transmitted_GHI(Scaled_Direct_Irradiance_Spectrum(:,:,day),Scaled_Diffuse_Irradiance_Spectrum(:,:,day),Scaled_GHI_Spectrum(:,:,day),Zenith(:,day));
     
     %Power Output Calculations
-    [Total_Solar_Irradiance_Incident_To_Cell(:,day), Solar_Cell_Power_Output(:,day), V_oc(:,day),I_sc(:,day)] = Sub_Surface_Solar_Power(Scaled_Direct_Irradiance_Spectrum(:,:,day),Scaled_Diffuse_Irradiance_Spectrum(:,:,day), Scaled_Transmitted_GHI_Spectrum(:,:,day), Water_Quality, Depth(:,day), Panel_Tilt_Bound(:,day), Incidence_Angle(:,day),Total_Scaled_GHI(:,day),T(:,day), array_type, array_n, Solar_Cell_Area, Rsh, Rs, C, Eg_0, alpha, beta); % Total GHI and solar cell power output at each minute
+    [Total_Solar_Irradiance_Incident_To_Cell(:,day), Solar_Cell_Power_Output(:,day), V_oc(:,day),I_sc(:,day)] = Sub_Surface_Solar_Power(Scaled_Direct_Irradiance_Spectrum(:,:,day),Scaled_Diffuse_Irradiance_Spectrum(:,:,day), Scaled_Transmitted_GHI_Spectrum(:,:,day), Water_Quality, Depth(:,day), Panel_Tilt_Bound(:,day), Incidence_Angle(:,day),Total_Scaled_GHI(:,day),T(:,day), array_type, array_n, Solar_Cell_Area, Rsh, Rs, C, Eg_0, alpha, beta,Cust_Ext_Eff); % Total GHI and solar cell power output at each minute
     
     wb_progress = wb_progress + wb_unit;
 end
@@ -144,6 +165,7 @@ out.Panel_Tilt = Panel_Tilt;
 out.Panel_Tilt_Bound = Panel_Tilt_Bound;
 out.Incidence_Angle = Incidence_Angle;
 out.Water_Quality = Water_Quality;
+out.Solar_Cell_Energy_Output = [];
 
 for ioutput = 1:length(outputNames)
     outStr = sprintf('out.%s',outputNames{ioutput});

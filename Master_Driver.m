@@ -18,12 +18,14 @@ left blank, but the order/spacing should be maintained.
 %}
 %File selection
 %must be in current directory (GUI should have browser functionality)
-in_filepath = '.';
-file = input('Please input your filename.ext: ','s');
-out_filepath = './Output';
-C = strsplit(file,"."); 
-base = string(C(1)); 
-ext = string(C(2)); %split up the input filename into the base and extension
+in_filepath = 'C:\Users\amysw\OneDrive - Northern Arizona University\Marine Energy Harvesting\';
+% in_filepath = 'C:\Users\ams883\OneDrive - Northern Arizona University\Marine Energy Harvesting\';%'.';
+file = strcat(in_filepath,'2018007_17A0036_Kilo.mat');%input('Please input your filename.ext: ','s');
+out_filepath = strcat(in_filepath,'Output');%'./Output';
+out_filetpe = 'mat';
+% C = strsplit(file,"."); 
+base = '2018007_17A0036_Kilo';%string(C(1)); 
+ext = 'mat';%string(C(2)); %split up the input filename into the base and extension
 
 % Water quality
 struct2cell_str = 'ocean';
@@ -36,11 +38,11 @@ switch struct2cell_str % Ranges 1-10. 1-5 open ocean, 6-10 coastal
         Water_Quality = input('Choose your water quality/qualities. Ranges 1-10; 1-5 open ocean, 6-10 coastal\n');
 end
 %Time zone
-Time_Zone = input('What time zone was the data collected in? (UTC + X): '); %-7;  %UTC + X 
+Time_Zone = -7;%input('What time zone was the data collected in? (UTC + X): '); %-7;  %UTC + X 
 
 %CERES data folder location
 % irr_file_path = 'C:\Users\laa22\Desktop\CERES Irradiance Data'; %laptop path
-irr_filepath = 'C:\Users\laa22\OneDrive\Desktop\CERES Irradiance Data'; %home computer path
+irr_filepath = strcat(in_filepath,'CERES Data 2018');%'C:\Users\laa22\OneDrive\Desktop\CERES Irradiance Data'; %home computer path
 % irr_file_path = 'C:\Users\laa222\Desktop\CERES Irradiance Data'; %school computer path
 % irr_file_path = '\\EGRSHARES\Homes\NAU\laa222\Desktop\CERES Irradiance Data'; %remote desktop path
 
@@ -66,10 +68,11 @@ single files, as described above. If the previous version of this function
 is desired, itcan be found in the '2018-06 - Open Sourcing Robustness'
 folder in the 'Model Edits'
 %}
-[Year, Month, Day] = Data_Format_Interpolation(file, base, ext); %pass the read in function the relevant information
+[Year, Month, Day] = Data_Format_Interpolation(file, base, ext, out_filetpe); %pass the read in function the relevant information
 
 %% Outline Logic for Month Run
-outputNames = {'Zenith', 'Total_Clear_Sky_Direct', 'Total_Clear_Sky_GHI', 'CERES_Direct_Down', 'CERES_GHI', 'Total_Scaled_GHI', 'Total_Scaled_Transmitted_GHI', 'Total_Solar_Irradiance_Incident_To_Cell', 'Solar_Cell_Power_Output', 'V_oc', 'I_sc'}; %would be defined by the user through the GUI interface
+% outputNames = {'Zenith', 'Total_Clear_Sky_Direct', 'Total_Clear_Sky_GHI', 'CERES_Direct_Down', 'CERES_GHI', 'Total_Scaled_GHI', 'Total_Scaled_Transmitted_GHI', 'Total_Solar_Irradiance_Incident_To_Cell', 'Solar_Cell_Power_Output', 'V_oc', 'I_sc'}; %would be defined by the user through the GUI interface
+outputNames = {'Time', 'Depth', 'Latitude', 'Longitude', 'T', 'Panel_Tilt', 'Panel_Azimuth', 'Incidence_Angle', 'Solar_Cell_Power_Output', 'Total_Scaled_GHI', 'Scaled_GHI_Spectrum', 'Total_Solar_Irradiance_Incident_To_Cell', 'V_oc', 'I_sc'};
 
 wb_progress = 0; %varible to indicate percent processing complete
 wb_unit = 1/(length(Day)*length(Water_Quality)); %unit of waitbar increment
@@ -79,7 +82,7 @@ for iWQ = 1:length(Water_Quality)
     for jfile = 1:length(filename)
         wb_str = sprintf('Water Quality %d/%d | Month %d/%d \n',iWQ,length(Water_Quality),jfile,length(filename)); %string concerning what month of deployment are being conducted as MAIN.m does not keep track of this information
         [out, wb_progress] = MAIN(wb, wb_progress, wb_str, wb_unit, filename(jfile), Water_Quality(iWQ), Time_Zone, outputNames, in_filepath, irr_filepath, array_type, array_n, Solar_Cell_Area, Rsh, Rs, C, Eg_0, alpha, beta); %pass to main model
-        eval(sprintf('out_%d_WQ%d=out;',jfile,Water_Quality(iWQ))) %save main model output as unique structure name for later ientification       
+        eval(sprintf('out_%d_WQ%d=out;',jfile,Water_Quality(iWQ))) %save main model output as unique structure name for later identification       
         clear out
     end
 
@@ -100,18 +103,19 @@ waitbar(0,wb,'Saving Output') %reset the waitbar
 waitbar((iWQ-1)/length(iWQ),wb,'Saving Output') %iterate the waitbar
 
 struct2cell_str = ''; %reset struct2cell string for cellfun function
-structNames = who(sprintf('out_*WQ%d',Water_Quality(iWQ))); %find month's output structure
+structNames = who(sprintf('out_*WQ%d',Water_Quality(iWQ))) %find month's output structure
 for istruct = 1:length(structNames) %for each month output structure
     struct2cell_str = [struct2cell_str,sprintf('struct2cell(%s),',structNames{istruct})]; %print struct2cell(struct1),...,struct2cell(struct2),... etc.
 end
 %assemble full cellfun function, as described above
-cellfun_str = [sprintf('out_WQ%d',Water_Quality(iWQ)),sprintf('=cell2struct(cellfun(@horzcat,%s''UniformOutput'',false),fieldnames(%s),1);',struct2cell_str,structNames{1})]; %concatenate structures
+cellfun_str = sprintf('out_WQ%d=cell2struct([%s],fieldnames(%s),1);',Water_Quality(iWQ),struct2cell_str,structNames{1}) %concatenate structures
 eval(cellfun_str); %evaluate the function
 
 %calculate Energy of deployment; since it is calculated using a
 %cumulative summation of power it must be calculated after
 %concatenation
-energy_str = [sprintf('out_WQ%d.Solar_Cell_Energy_Output',Water_Quality(iWQ)),sprintf('= reshape(cumtrapz(datenum(out_WQ%d.Time),reshape(out_WQ%d.Solar_Cell_Power_Output,1,[]).*86400),86400,[]);',Water_Quality(iWQ),Water_Quality(iWQ))];
+eval(sprintf('temp = out_WQ%d.Time;',Water_Quality(iWQ)))
+energy_str = sprintf('out_WQ%d.Solar_Cell_Energy_Output = reshape(cumtrapz(datenum(temp),reshape(out_WQ%d.Solar_Cell_Power_Output,1,[]).*86400),86400,[]);',Water_Quality(iWQ),Water_Quality(iWQ))
 eval(energy_str)
 
 %save

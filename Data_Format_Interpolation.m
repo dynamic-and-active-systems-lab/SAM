@@ -1,4 +1,4 @@
-function [Year, Month, Day] = Data_Format_Interpolation_fast_pa(file, base, ext)
+function [Year, Month, Day] = Data_Format_Interpolation_fast_pa(file, base, ext, out_filetype) % add: , Depth, Latitude, Longitude, T, Panel_Tilt, Panel_Azimuth
 %{
 If formated as an .xlsx and or .csv file, the input data should be compiled
 where each column represents:
@@ -13,6 +13,7 @@ left blank, but the order/spacing should be maintained.
 %month/day characteristics - reusable metrics
 monthStartDay = [1 32 60 91 121 152 182 213 244 274 305 335;... %start day of each month
     1 32 61 92 122 153 183 214 245 275 306 336]; %row 1: Common Year row 2: Leap Year
+C = strsplit(file,base); filepath = C{1};
 
 %% Read In
 switch ext %load in data (can be in .mat, .xlsx, or .csv)
@@ -51,17 +52,22 @@ Year = unique(timeYear,'stable'); %year(s) of deployment
 Month = [timeMonth(diff(timeMonth) ~= 0); timeMonth(end)]; %month(s) of deployment
 Day = timeDay(diff(timeDay) ~= 0); %days of deployment
 
+
+
 %%%%%%if the data set resides within one calendar month
 if length(Month) == 1
-    %panel tilt and azimuth are not recorded directly and must be calculated
-    pt = paneltilt(ax,ay,az); %panel tilt calculations
-    pa = panelazimuth(lat, lon); %panel azimuth calculations
-    %interpolate file contents
-    Time = dateshift(time(1), 'start', 'day'):(1/86400):dateshift(time(end), 'end', 'day')-(1/86400); %full time vector, second resolution
-    [Depth, Latitude, Longitude, T, Panel_Tilt, Panel_Azimuth] = cust_interp(time, Time, depth, lat, lon, temp, pt, pa);
-    %write out a mat file with the necessary model inputs
-    filename = sprintf('%s_model.mat',base); %pass to main model
-    save(filename,'Time','Depth','Latitude','Longitude','T','Panel_Tilt','Panel_Azimuth','-mat'); %save model read matlab file
+    % Check if model files already exist (function takes a long time to run, so the user might have run it partially)
+    filename = sprintf('%s%s_model.mat',filepath,base); %pass to main model
+    if isfile(filename)==0 % file doesn't exist, continue with calcs
+        %panel tilt and azimuth are not recorded directly and must be calculated
+        pt = paneltilt(ax,ay,az); %panel tilt calculations
+        pa = panelazimuth(lat, lon); %panel azimuth calculations
+        %interpolate file contents
+        Time = dateshift(time(1), 'start', 'day'):(1/86400):dateshift(time(end), 'end', 'day')-(1/86400); %full time vector, second resolution
+        [Depth, Latitude, Longitude, T, Panel_Tilt, Panel_Azimuth] = cust_interp(time, Time, depth, lat, lon, temp, pt, pa);
+        %write out a mat file with the necessary model inputs
+        save(filename,'Time','Depth','Latitude','Longitude','T','Panel_Tilt','Panel_Azimuth','-mat'); %save model read matlab file
+    end
 end
 
 %%%%%%if data set spans multiple calendar months or years
@@ -73,7 +79,7 @@ for iyear = 1:length(Year) %for each year deployment spans
     timeYear_end(iyear) = find(timeYear == Year(iyear),1,'last');
 end
 yearPointer = 1; %initialize 'Year' vector index pointer
-filename = string(nan(length(Month),1)); %preallocating a matrix to save filenames
+filename = {}; %string(nan(length(Month),1)); %preallocating a matrix to save filenames
 for iMonth = 1:length(Month) %iterate through the calendar months of the deployment data
     if iMonth >= 2 && Month(iMonth) == 1; yearPointer = yearPointer + 1; end %interate pointer if new year detected
     %extract month chunks using variable start and end indices
@@ -94,27 +100,30 @@ for iMonth = 1:length(Month) %iterate through the calendar months of the deploym
         strt = find(time == rel_time(rel_strt)); %first measurement of month in deployment indices
         en = find(time ==rel_time(rel_en)); %last measurement of month in deployment indices
     end
-    %seperate out the current month of data
-    time_month = time(strt:en);
-    depth_month = depth(strt:en);
-    lat_month = lat(strt:en);
-    lon_month = lon(strt:en);
-    temp_month = temp(strt:en);
-    ax_month = ax(strt:en);
-    ay_month = ay(strt:en);
-    az_month = az(strt:en);
-    %calculate pt and pa
-    pt_month = paneltilt(ax_month,ay_month,az_month); %panel tilt calculations
-    pa_month = panelazimuth(lat_month, lon_month); %panel azimuth calculations
-    %interpolate
-    Time = dateshift(time_month(1), 'start', 'day'):(1/86400):dateshift(time_month(end), 'end', 'day')-(1/86400); %full time vector, second resolution
-    [Depth, Latitude, Longitude, T, Panel_Tilt, Panel_Azimuth] = cust_interp(time_month, Time, depth_month, lat_month, lon_month, temp_month, pt_month, pa_month);
-    %write to file
-    %pad single numbered months with leading zero
+    % % Check if model files already exist (function takes a long time to run, so the user might have run it partially)
+    % pad single numbered months with leading zero
     if length(num2str(Month(iMonth))) == 1; monthPrint = sprintf('0%d',Month(iMonth));
     else; monthPrint = string(Month(iMonth)); end
-    filename(iMonth) = sprintf('%s_%d_%s_model.mat',base,Year(yearPointer),monthPrint); %filenames to pass to main model
-    save(filename(iMonth),'Time','Depth','Latitude','Longitude','T','Panel_Tilt','Panel_Azimuth','-mat')
+    filename{iMonth} = sprintf('%s%s_%d_%s_model.mat',filepath,base,Year(yearPointer),monthPrint); %filenames to pass to main model
+    if isfile(filename{iMonth})==0 % file doesn't exist, continue with calcs
+        %seperate out the current month of data
+        time_month = time(strt:en);
+        depth_month = depth(strt:en);
+        lat_month = lat(strt:en);
+        lon_month = lon(strt:en);
+        temp_month = temp(strt:en);
+        ax_month = ax(strt:en);
+        ay_month = ay(strt:en);
+        az_month = az(strt:en);
+        %calculate pt and pa
+        pt_month = paneltilt(ax_month,ay_month,az_month); %panel tilt calculations
+        pa_month = panelazimuth(lat_month, lon_month); %panel azimuth calculations
+        %interpolate
+        Time = dateshift(time_month(1), 'start', 'day'):(1/86400):dateshift(time_month(end), 'end', 'day')-(1/86400); %full time vector, second resolution
+        [Depth, Latitude, Longitude, T, Panel_Tilt, Panel_Azimuth] = cust_interp(time_month, Time, depth_month, lat_month, lon_month, temp_month, pt_month, pa_month);
+        %write to file
+        save(filename{iMonth},'Time','Depth','Latitude','Longitude','T','Panel_Tilt','Panel_Azimuth','-mat')
+    end
 end
 
 % Subfunction Definitions
