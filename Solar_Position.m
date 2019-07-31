@@ -46,9 +46,10 @@ function [Zenith, Solar_Azimuth, Incidence_Angle] = ...
 %   Incidence_Angle     The angle between a ray incident on the panel and
 %                       the perpendicular surface in degrees
 
-%% Input Variables
-
-%Parse the elevation variable
+% %% Input Variables
+% 
+% %Parse the elevation variable
+% 
 
 p = inputParser;
 
@@ -77,139 +78,28 @@ parse(p,latitude,longitude,datetime,varargin{:});
 Inputs.elevation = p.Results.elevation;
 
 %Set the other variables equal to variables inputted
-Inputs.datetime = datetime;
+for i = 1:length(datetime)
+    Inputs.datetime(i) = datetime(i);
+end
+
 [Inputs.year,Inputs.month,Inputs.day] = ymd(Inputs.datetime);
 [Inputs.hour,Inputs.minute,Inputs.second] = hms(Inputs.datetime);
+
 Inputs.latitude = latitude; %Latitude from -90 to 90 degrees
 Inputs.longitude = longitude; %Longitude from -180 to 180 degrees
 
 %% Convert each input variable into equal length arrays
 
-%Year
+%Datetime
 
-if length(Inputs.year) > length(Inputs.month) || ...
-        length(Inputs.year) > length(Inputs.day) || ...
-        length(Inputs.year) > length(Inputs.hour) || ...
-        length(Inputs.year) > length(Inputs.minute) || ...
-        length(Inputs.year) > length(Inputs.second) || ...
-        length(Inputs.year) > length(Inputs.latitude) || ...
-        length(Inputs.year) > length(Inputs.longitude) || ...
-        length(Inputs.year) > length(Inputs.elevation)
-    
-    Inputs.month = repmat(Inputs.month(1),length(Inputs.year),1)';
-    Inputs.day = repmat(Inputs.day(1),length(Inputs.year),1)';
-    Inputs.hour = repmat(Inputs.hour(1),length(Inputs.year),1)';
-    Inputs.minute = repmat(Inputs.minute(1),length(Inputs.year),1)';
-    Inputs.second = repmat(Inputs.second(1),length(Inputs.year),1)';
+if length(Inputs.datetime) > length(Inputs.latitude) || ...
+        length(Inputs.datetime) > length(Inputs.longitude) || ...
+        length(Inputs.datetime) > length(Inputs.elevation)
+
     Inputs.latitude = repmat(Inputs.latitude(1),length(Inputs.year),1)';
     Inputs.longitude = repmat(Inputs.longitude(1),length(Inputs.year),1)';
     Inputs.elevation = repmat(Inputs.elevation(1),length(Inputs.year),1)';
-    
-end
 
-%Month
-
-if length(Inputs.month) > length(Inputs.year) || ...
-        length(Inputs.month) > length(Inputs.day) || ...
-        length(Inputs.month) > length(Inputs.hour) || ...
-        length(Inputs.month) > length(Inputs.minute) || ...
-        length(Inputs.month) > length(Inputs.second) || ...
-        length(Inputs.month) > length(Inputs.latitude) || ...
-        length(Inputs.month) > length(Inputs.longitude) || ...
-        length(Inputs.month) > length(Inputs.elevation)
-    
-    Inputs.year = repmat(Inputs.year(1),length(Inputs.month),1)';
-    Inputs.day = repmat(Inputs.day(1),length(Inputs.month),1)';
-    Inputs.hour = repmat(Inputs.hour(1),length(Inputs.month),1)';
-    Inputs.minute = repmat(Inputs.minute(1),length(Inputs.month),1)';
-    Inputs.second = repmat(Inputs.second(1),length(Inputs.month),1)';
-    Inputs.latitude = repmat(Inputs.latitude(1),length(Inputs.month),1)';
-    Inputs.longitude = repmat(Inputs.longitude(1),length(Inputs.month),1)';
-    Inputs.elevation = repmat(Inputs.elevation(1),length(Inputs.month),1)';
-end
-
-%Day
-
-if length(Inputs.day) > length(Inputs.year) || ...
-        length(Inputs.day) > length(Inputs.month) || ...
-        length(Inputs.day) > length(Inputs.hour) || ...
-        length(Inputs.day) > length(Inputs.minute) || ...
-        length(Inputs.day) > length(Inputs.second) || ...
-        length(Inputs.day) > length(Inputs.latitude) || ...
-        length(Inputs.day) > length(Inputs.longitude) || ...
-        length(Inputs.day) > length(Inputs.elevation)
-    
-    Inputs.year = repmat(Inputs.year(1),length(Inputs.day),1)';
-    Inputs.month = repmat(Inputs.month(1),length(Inputs.day),1)';
-    Inputs.hour = repmat(Inputs.hour(1),length(Inputs.day),1)';
-    Inputs.minute = repmat(Inputs.minute(1),length(Inputs.day),1)';
-    Inputs.second = repmat(Inputs.second(1),length(Inputs.day),1)';
-    Inputs.latitude = repmat(Inputs.latitude(1),length(Inputs.day),1)';
-    Inputs.longitude = repmat(Inputs.longitude(1),length(Inputs.day),1)';
-    Inputs.elevation = repmat(Inputs.elevation(1),length(Inputs.day),1)';
-end
-
-%Hour
-
-if length(Inputs.hour) > length(Inputs.year) || ...
-        length(Inputs.hour) > length(Inputs.month) || ...
-        length(Inputs.hour) > length(Inputs.day) || ...
-        length(Inputs.hour) > length(Inputs.minute) || ...
-        length(Inputs.hour) > length(Inputs.second) || ...
-        length(Inputs.hour) > length(Inputs.latitude) || ...
-        length(Inputs.hour) > length(Inputs.longitude) || ...
-        length(Inputs.hour) > length(Inputs.elevation)
-    
-    Inputs.year = repmat(Inputs.year(1),length(Inputs.hour),1)';
-    Inputs.month = repmat(Inputs.month(1),length(Inputs.hour),1)';
-    Inputs.day = repmat(Inputs.day(1),length(Inputs.hour),1)';
-    Inputs.minute = repmat(Inputs.minute(1),length(Inputs.hour),1)';
-    Inputs.second = repmat(Inputs.second(1),length(Inputs.hour),1)';
-    Inputs.latitude = repmat(Inputs.latitude(1),length(Inputs.hour),1)';
-    Inputs.longitude = repmat(Inputs.longitude(1),length(Inputs.hour),1)';
-    Inputs.elevation = repmat(Inputs.elevation(1),length(Inputs.hour),1)';
-end
-
-%Minute
-
-if length(Inputs.minute) > length(Inputs.year) || ...
-        length(Inputs.minute) > length(Inputs.month) || ...
-        length(Inputs.minute) > length(Inputs.day) || ...
-        length(Inputs.minute) > length(Inputs.hour) || ...
-        length(Inputs.minute) > length(Inputs.second) || ...
-        length(Inputs.minute) > length(Inputs.latitude) || ...
-        length(Inputs.minute) > length(Inputs.longitude) || ...
-        length(Inputs.minute) > length(Inputs.elevation)
-    
-    Inputs.year = repmat(Inputs.year(1),length(Inputs.minute),1)';
-    Inputs.month = repmat(Inputs.month(1),length(Inputs.minute),1)';
-    Inputs.day = repmat(Inputs.day(1),length(Inputs.minute),1)';
-    Inputs.hour = repmat(Inputs.hour(1),length(Inputs.minute),1)';
-    Inputs.second = repmat(Inputs.second(1),length(Inputs.minute),1)';
-    Inputs.latitude = repmat(Inputs.latitude(1),length(Inputs.minute),1)';
-    Inputs.longitude = repmat(Inputs.longitude(1),length(Inputs.minute),1)';
-    Inputs.elevation = repmat(Inputs.elevation(1),length(Inputs.minute),1)';
-end
-
-%Second
-
-if length(Inputs.second) > length(Inputs.year) || ...
-        length(Inputs.second) > length(Inputs.month) || ...
-        length(Inputs.second) > length(Inputs.day) || ...
-        length(Inputs.second) > length(Inputs.hour) || ...
-        length(Inputs.second) > length(Inputs.minute) || ...
-        length(Inputs.second) > length(Inputs.latitude) || ...
-        length(Inputs.second) > length(Inputs.longitude) || ...
-        length(Inputs.second) > length(Inputs.elevation)
-    
-    Inputs.year = repmat(Inputs.year(1),length(Inputs.second),1)';
-    Inputs.month = repmat(Inputs.month(1),length(Inputs.second),1)';
-    Inputs.day = repmat(Inputs.day(1),length(Inputs.second),1)';
-    Inputs.hour = repmat(Inputs.hour(1),length(Inputs.second),1)';
-    Inputs.minute = repmat(Inputs.minute(1),length(Inputs.second),1)';
-    Inputs.latitude = repmat(Inputs.latitude(1),length(Inputs.second),1)';
-    Inputs.longitude = repmat(Inputs.longitude(1),length(Inputs.second),1)';
-    Inputs.elevation = repmat(Inputs.elevation(1),length(Inputs.second),1)';
 end
 
 %Latitude
@@ -1146,6 +1036,3 @@ Incidence_Angle = acosd(cosd(90.*ones(size(LSTM))-Zenith) ...
 %ensures no negative cos(AoI) values; caps loss to "negative" collection values
 Incidence_Angle(Incidence_Angle > 90 & Incidence_Angle < 270) = 90;  
 end
-
-
-
